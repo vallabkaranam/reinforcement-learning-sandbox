@@ -229,6 +229,103 @@ def run_q_learning():
     print("-" * 75)
     return q_table
 
+def run_expected_sarsa():
+    """
+    Main Expected SARSA training loop.
+    """
+    # Initialize Q-table: key=(state, action), value=float
+    q_table = {}
+    
+    # To track rolling average return
+    recent_returns = [] 
+    
+    print(f"\nStarting Expected SARSA Training: {TOTAL_EPISODES} episodes")
+    print(f"Params: Alpha={ALPHA}, Gamma={GAMMA}, Epsilon Schedule: Start={EPSILON_START}, Min={EPSILON_MIN}, Decay={EPSILON_DECAY}, Slip={SLIP_PROB}")
+    
+    headers = ["Episode", "Return", "Steps", "Epsilon", "Avg Return (Last 50)"]
+    print("-" * 75)
+    print(f"{headers[0]:<8} | {headers[1]:<8} | {headers[2]:<6} | {headers[3]:<7} | {headers[4]:<20}")
+    print("-" * 75)
+
+    for episode in range(1, TOTAL_EPISODES + 1):
+        # Calculate epsilon for this episode
+        epsilon = max(EPSILON_MIN, EPSILON_START * (EPSILON_DECAY ** (episode - 1)))
+        
+        state = START_POS
+        
+        total_reward = 0
+        steps = 0
+        done = False
+        
+        while not done:
+            # Choose action using Epsilon-Greedy
+            action = choose_action(state, q_table, epsilon)
+            
+            next_state, reward, done = step(state, action)
+            total_reward += reward
+            steps += 1
+            
+            # Expected SARSA Update
+            # Q(S, A) <- Q(S, A) + alpha * [R + gamma * E[Q(S', a)] - Q(S, A)]
+            # Where E[Q(S', a)] = sum(pi(a|S') * Q(S', a))
+            
+            old_q = q_table.get((state, action), 0.0)
+            
+            if done:
+                target = reward
+            else:
+                # Calculate expected Q value under current epsilon-greedy policy
+                expected_q = 0.0
+                
+                # Find best actions for greedy part
+                best_val = -float('inf')
+                best_actions = []
+                for a in ACTIONS:
+                    val = q_table.get((next_state, a), 0.0)
+                    if val > best_val:
+                        best_val = val
+                        best_actions = [a]
+                    elif val == best_val:
+                        best_actions.append(a)
+                
+                num_actions = len(ACTIONS)
+                num_best = len(best_actions)
+                
+                # Probabilities:
+                # Greedy actions: (1 - epsilon) / num_best + epsilon / num_actions
+                # Non-greedy actions: epsilon / num_actions
+                
+                greedy_prob = (1.0 - epsilon) / num_best + (epsilon / num_actions)
+                non_greedy_prob = epsilon / num_actions
+                
+                for a in ACTIONS:
+                    val = q_table.get((next_state, a), 0.0)
+                    if a in best_actions:
+                        expected_q += greedy_prob * val
+                    else:
+                        expected_q += non_greedy_prob * val
+                        
+                target = reward + GAMMA * expected_q
+            
+            # Update Q-value
+            new_q = old_q + ALPHA * (target - old_q)
+            q_table[(state, action)] = new_q
+            
+            state = next_state
+        
+        # Update stats
+        recent_returns.append(total_reward)
+        if len(recent_returns) > 50:
+            recent_returns.pop(0)
+
+        # Log progress
+        if episode % LOG_INTERVAL == 0:
+            avg_return = sum(recent_returns) / len(recent_returns)
+            print(f"{episode:<8d} | {total_reward:<8.1f} | {steps:<6d} | {epsilon:<7.3f} | {avg_return:<20.1f}")
+
+    print("-" * 75)
+    return q_table
+
 def print_policy(q_table):
     """
     Prints the learned greedy policy and key locations.
@@ -356,3 +453,21 @@ if __name__ == "__main__":
     print_policy(learned_q_learning_q)
     print("\n[Q-Learning] Final Greedy Rollout")
     greedy_rollout(learned_q_learning_q)
+    
+    print("\n" + "="*30 + "\n")
+
+    print("=== EXPECTED SARSA ===")
+    learned_expected_sarsa_q = run_expected_sarsa()
+    print("\n[Expected SARSA] Learned Greedy Policy")
+    print_policy(learned_expected_sarsa_q)
+    print("\n[Expected SARSA] Final Greedy Rollout")
+    greedy_rollout(learned_expected_sarsa_q)
+    
+    print("\n" + "="*30 + "\n")
+
+    print("=== EXPECTED SARSA ===")
+    learned_expected_sarsa_q = run_expected_sarsa()
+    print("\n[Expected SARSA] Learned Greedy Policy")
+    print_policy(learned_expected_sarsa_q)
+    print("\n[Expected SARSA] Final Greedy Rollout")
+    greedy_rollout(learned_expected_sarsa_q)
