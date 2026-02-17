@@ -463,11 +463,3 @@ if __name__ == "__main__":
     print("\n[Expected SARSA] Final Greedy Rollout")
     greedy_rollout(learned_expected_sarsa_q)
     
-    print("\n" + "="*30 + "\n")
-
-    print("=== EXPECTED SARSA ===")
-    learned_expected_sarsa_q = run_expected_sarsa()
-    print("\n[Expected SARSA] Learned Greedy Policy")
-    print_policy(learned_expected_sarsa_q)
-    print("\n[Expected SARSA] Final Greedy Rollout")
-    greedy_rollout(learned_expected_sarsa_q)
