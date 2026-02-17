@@ -149,6 +149,74 @@ def run_sarsa():
     print("-" * 75)
     return q_table
 
+def run_q_learning():
+    """
+    Main Q-Learning training loop.
+    """
+    # Initialize Q-table: key=(state, action), value=float
+    q_table = {}
+    
+    # To track rolling average return
+    recent_returns = [] 
+    
+    print(f"\nStarting Q-Learning Training: {TOTAL_EPISODES} episodes")
+    print(f"Params: Alpha={ALPHA}, Gamma={GAMMA}, Epsilon={EPSILON}")
+    
+    headers = ["Episode", "Return", "Steps", "Epsilon", "Avg Return (Last 50)"]
+    print("-" * 75)
+    print(f"{headers[0]:<8} | {headers[1]:<8} | {headers[2]:<6} | {headers[3]:<7} | {headers[4]:<20}")
+    print("-" * 75)
+
+    for episode in range(1, TOTAL_EPISODES + 1):
+        state = START_POS
+        
+        total_reward = 0
+        steps = 0
+        done = False
+        
+        while not done:
+            # Q-Learning chooses action based on Current State using Epsilon-Greedy
+            action = choose_action(state, q_table, EPSILON)
+            
+            next_state, reward, done = step(state, action)
+            total_reward += reward
+            steps += 1
+            
+            # Q-Learning Update
+            # Q(S, A) <- Q(S, A) + alpha * [R + gamma * max_a Q(S', a) - Q(S, A)]
+            
+            old_q = q_table.get((state, action), 0.0)
+            
+            if done:
+                target = reward
+            else:
+                # Max Q over all actions in next state
+                max_next_q = -float('inf')
+                for a in ACTIONS:
+                    val = q_table.get((next_state, a), 0.0)
+                    if val > max_next_q:
+                        max_next_q = val
+                target = reward + GAMMA * max_next_q
+            
+            # Update Q-value
+            new_q = old_q + ALPHA * (target - old_q)
+            q_table[(state, action)] = new_q
+            
+            state = next_state
+        
+        # Update stats
+        recent_returns.append(total_reward)
+        if len(recent_returns) > 50:
+            recent_returns.pop(0)
+
+        # Log progress
+        if episode % LOG_INTERVAL == 0:
+            avg_return = sum(recent_returns) / len(recent_returns)
+            print(f"{episode:<8d} | {total_reward:<8.1f} | {steps:<6d} | {EPSILON:<7.3f} | {avg_return:<20.1f}")
+
+    print("-" * 75)
+    return q_table
+
 def print_policy(q_table):
     """
     Prints the learned greedy policy and key locations.
@@ -261,6 +329,18 @@ if __name__ == "__main__":
     # Optional: seeding
     # random.seed(42)
     
-    learned_q = run_sarsa()
-    print_policy(learned_q)
-    greedy_rollout(learned_q)
+    print("=== SARSA ===")
+    learned_sarsa_q = run_sarsa()
+    print("\n[SARSA] Learned Greedy Policy")
+    print_policy(learned_sarsa_q)
+    print("\n[SARSA] Final Greedy Rollout")
+    greedy_rollout(learned_sarsa_q)
+    
+    print("\n" + "="*30 + "\n")
+    
+    print("=== Q-LEARNING ===")
+    learned_q_learning_q = run_q_learning()
+    print("\n[Q-Learning] Learned Greedy Policy")
+    print_policy(learned_q_learning_q)
+    print("\n[Q-Learning] Final Greedy Rollout")
+    greedy_rollout(learned_q_learning_q)
