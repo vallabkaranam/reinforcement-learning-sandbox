@@ -24,6 +24,7 @@ GAMMA = 1.0
 EPSILON_START = 1.0
 EPSILON_MIN = 0.01
 EPSILON_DECAY = 0.995
+SLIP_PROB = 0.1
 TOTAL_EPISODES = 500
 LOG_INTERVAL = 50
 
@@ -43,6 +44,9 @@ def step(state, action):
     Execute one step in the environment.
     Returns: (next_state, reward, done)
     """
+    if random.random() < SLIP_PROB:
+        action = random.choice(ACTIONS)
+
     # Determine tentative next position based on action
     next_pos = get_next_position(state, action)
 
@@ -93,7 +97,7 @@ def run_sarsa():
     recent_returns = [] 
 
     print(f"Starting SARSA Training: {TOTAL_EPISODES} episodes")
-    print(f"Params: Alpha={ALPHA}, Gamma={GAMMA}, Epsilon Schedule: Start={EPSILON_START}, Min={EPSILON_MIN}, Decay={EPSILON_DECAY}")
+    print(f"Params: Alpha={ALPHA}, Gamma={GAMMA}, Epsilon Schedule: Start={EPSILON_START}, Min={EPSILON_MIN}, Decay={EPSILON_DECAY}, Slip={SLIP_PROB}")
     
     headers = ["Episode", "Return", "Steps", "Epsilon", "Avg Return (Last 50)"]
     print("-" * 75)
@@ -165,7 +169,7 @@ def run_q_learning():
     recent_returns = [] 
     
     print(f"\nStarting Q-Learning Training: {TOTAL_EPISODES} episodes")
-    print(f"Params: Alpha={ALPHA}, Gamma={GAMMA}, Epsilon Schedule: Start={EPSILON_START}, Min={EPSILON_MIN}, Decay={EPSILON_DECAY}")
+    print(f"Params: Alpha={ALPHA}, Gamma={GAMMA}, Epsilon Schedule: Start={EPSILON_START}, Min={EPSILON_MIN}, Decay={EPSILON_DECAY}, Slip={SLIP_PROB}")
     
     headers = ["Episode", "Return", "Steps", "Epsilon", "Avg Return (Last 50)"]
     print("-" * 75)
