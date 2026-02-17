@@ -21,7 +21,9 @@ ACTION_SYMBOLS = {0: '^', 1: '>', 2: 'v', 3: '<'}
 
 ALPHA = 0.5
 GAMMA = 1.0
-EPSILON = 0.1
+EPSILON_START = 1.0
+EPSILON_MIN = 0.01
+EPSILON_DECAY = 0.995
 TOTAL_EPISODES = 500
 LOG_INTERVAL = 50
 
@@ -91,7 +93,7 @@ def run_sarsa():
     recent_returns = [] 
 
     print(f"Starting SARSA Training: {TOTAL_EPISODES} episodes")
-    print(f"Params: Alpha={ALPHA}, Gamma={GAMMA}, Epsilon={EPSILON}")
+    print(f"Params: Alpha={ALPHA}, Gamma={GAMMA}, Epsilon Schedule: Start={EPSILON_START}, Min={EPSILON_MIN}, Decay={EPSILON_DECAY}")
     
     headers = ["Episode", "Return", "Steps", "Epsilon", "Avg Return (Last 50)"]
     print("-" * 75)
@@ -99,9 +101,12 @@ def run_sarsa():
     print("-" * 75)
 
     for episode in range(1, TOTAL_EPISODES + 1):
+        # Calculate epsilon for this episode
+        epsilon = max(EPSILON_MIN, EPSILON_START * (EPSILON_DECAY ** (episode - 1)))
+        
         state = START_POS
         # Choose initial action (SARSA needs A for the first step)
-        action = choose_action(state, q_table, EPSILON)
+        action = choose_action(state, q_table, epsilon)
         
         total_reward = 0
         steps = 0
@@ -123,7 +128,7 @@ def run_sarsa():
                 # Determine next_action just for loop continuity variables, though loop ends
                 next_action = None 
             else:
-                next_action = choose_action(next_state, q_table, EPSILON) # A'
+                next_action = choose_action(next_state, q_table, epsilon) # A'
                 next_q = q_table.get((next_state, next_action), 0.0)
                 target = reward + GAMMA * next_q
             
@@ -144,7 +149,7 @@ def run_sarsa():
         # Log progress
         if episode % LOG_INTERVAL == 0:
             avg_return = sum(recent_returns) / len(recent_returns)
-            print(f"{episode:<8d} | {total_reward:<8.1f} | {steps:<6d} | {EPSILON:<7.3f} | {avg_return:<20.1f}")
+            print(f"{episode:<8d} | {total_reward:<8.1f} | {steps:<6d} | {epsilon:<7.3f} | {avg_return:<20.1f}")
 
     print("-" * 75)
     return q_table
@@ -160,7 +165,7 @@ def run_q_learning():
     recent_returns = [] 
     
     print(f"\nStarting Q-Learning Training: {TOTAL_EPISODES} episodes")
-    print(f"Params: Alpha={ALPHA}, Gamma={GAMMA}, Epsilon={EPSILON}")
+    print(f"Params: Alpha={ALPHA}, Gamma={GAMMA}, Epsilon Schedule: Start={EPSILON_START}, Min={EPSILON_MIN}, Decay={EPSILON_DECAY}")
     
     headers = ["Episode", "Return", "Steps", "Epsilon", "Avg Return (Last 50)"]
     print("-" * 75)
@@ -168,6 +173,9 @@ def run_q_learning():
     print("-" * 75)
 
     for episode in range(1, TOTAL_EPISODES + 1):
+        # Calculate epsilon for this episode
+        epsilon = max(EPSILON_MIN, EPSILON_START * (EPSILON_DECAY ** (episode - 1)))
+        
         state = START_POS
         
         total_reward = 0
@@ -176,7 +184,7 @@ def run_q_learning():
         
         while not done:
             # Q-Learning chooses action based on Current State using Epsilon-Greedy
-            action = choose_action(state, q_table, EPSILON)
+            action = choose_action(state, q_table, epsilon)
             
             next_state, reward, done = step(state, action)
             total_reward += reward
@@ -212,7 +220,7 @@ def run_q_learning():
         # Log progress
         if episode % LOG_INTERVAL == 0:
             avg_return = sum(recent_returns) / len(recent_returns)
-            print(f"{episode:<8d} | {total_reward:<8.1f} | {steps:<6d} | {EPSILON:<7.3f} | {avg_return:<20.1f}")
+            print(f"{episode:<8d} | {total_reward:<8.1f} | {steps:<6d} | {epsilon:<7.3f} | {avg_return:<20.1f}")
 
     print("-" * 75)
     return q_table
